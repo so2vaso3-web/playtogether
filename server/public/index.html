@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Together Hack Store - Test Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result pre {
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .error {
+            border-left-color: #e74c3c;
+            background: #fee;
+        }
+        .success {
+            border-left-color: #27ae60;
+            background: #efe;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .status.online {
+            background: #27ae60;
+            color: white;
+        }
+        .status.offline {
+            background: #e74c3c;
+            color: white;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .token-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Play Together Hack Store</h1>
+        <p class="subtitle">API Testing Page</p>
+        
+        <div id="status" class="status offline">Checking server...</div>
+
+        <!-- Auth Section -->
+        <div class="section">
+            <h2>🔐 Xác Thực</h2>
+            <div class="grid">
+                <div>
+                    <h3>Đăng Ký</h3>
+                    <div class="form-group">
+                        <label>Số điện thoại:</label>
+                        <input type="text" id="regPhone" placeholder="0123456789" value="0123456789">
+                    </div>
+                    <div class="form-group">
+                        <label>Mật khẩu:</label>
+                        <input type="password" id="regPassword" placeholder="Password" value="123456">
+                    </div>
+                    <div class="form-group">
+                        <label>Tên (tùy chọn):</label>
+                        <input type="text" id="regName" placeholder="Tên của bạn">
+                    </div>
+                    <button onclick="register()">Đăng Ký</button>
+                    <div id="registerResult" class="result" style="display:none;"></div>
+                </div>
+                <div>
+                    <h3>Đăng Nhập</h3>
+                    <div class="form-group">
+                        <label>Số điện thoại:</label>
+                        <input type="text" id="loginPhone" placeholder="0123456789">
+                    </div>
+                    <div class="form-group">
+                        <label>Mật khẩu:</label>
+                        <input type="password" id="loginPassword" placeholder="Password">
+                    </div>
+                    <button onclick="login()">Đăng Nhập</button>
+                    <div id="loginResult" class="result" style="display:none;"></div>
+                    <div id="tokenDisplay" class="token-display" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Packages Section -->
+        <div class="section">
+            <h2>📦 Gói Hack</h2>
+            <button onclick="getPackages()">Xem Danh Sách Gói</button>
+            <div id="packagesResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Payment Section -->
+        <div class="section">
+            <h2>💳 Thanh Toán</h2>
+            <div class="form-group">
+                <label>ID Gói:</label>
+                <input type="text" id="packageId" placeholder="Package ID">
+            </div>
+            <div class="form-group">
+                <label>Phương thức thanh toán:</label>
+                <select id="paymentMethod">
+                    <option value="momo">MoMo</option>
+                    <option value="zalopay">ZaloPay</option>
+                    <option value="card">Card</option>
+                    <option value="bank">Bank Transfer</option>
+                </select>
+            </div>
+            <button onclick="createPayment()">Tạo Thanh Toán</button>
+            <div id="paymentResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- User Info Section -->
+        <div class="section">
+            <h2>👤 Thông Tin User</h2>
+            <button onclick="getProfile()">Lấy Thông Tin</button>
+            <button onclick="getUserPackages()">Gói Đã Mua</button>
+            <button onclick="getTransactions()">Lịch Sử Giao Dịch</button>
+            <div id="userResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let authToken = localStorage.getItem('authToken') || '';
+
+        // Check server status
+        async function checkServer() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                document.getElementById('status').textContent = '✓ Server Online';
+                document.getElementById('status').className = 'status online';
+            } catch (error) {
+                document.getElementById('status').textContent = '✗ Server Offline';
+                document.getElementById('status').className = 'status offline';
+            }
+        }
+
+        checkServer();
+        setInterval(checkServer, 5000);
+
+        // Register
+        async function register() {
+            const phone = document.getElementById('regPhone').value;
+            const password = document.getElementById('regPassword').value;
+            const name = document.getElementById('regName').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password, name })
+                });
+                const data = await response.json();
+                showResult('registerResult', data, response.ok);
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    updateTokenDisplay();
+                }
+            } catch (error) {
+                showResult('registerResult', { error: error.message }, false);
+            }
+        }
+
+        // Login
+        async function login() {
+            const phone = document.getElementById('loginPhone').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+                const data = await response.json();
+                showResult('loginResult', data, response.ok);
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    updateTokenDisplay();
+                    document.getElementById('loginPhone').value = phone;
+                }
+            } catch (error) {
+                showResult('loginResult', { error: error.message }, false);
+            }
+        }
+
+        // Get Packages
+        async function getPackages() {
+            try {
+                const response = await fetch(`${API_BASE}/packages`);
+                const data = await response.json();
+                showResult('packagesResult', data, response.ok);
+            } catch (error) {
+                showResult('packagesResult', { error: error.message }, false);
+            }
+        }
+
+        // Create Payment
+        async function createPayment() {
+            if (!authToken) {
+                alert('Vui lòng đăng nhập trước!');
+                return;
+            }
+
+            const packageId = document.getElementById('packageId').value;
+            const method = document.getElementById('paymentMethod').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/payments/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ packageId, method })
+                });
+                const data = await response.json();
+                showResult('paymentResult', data, response.ok);
+            } catch (error) {
+                showResult('paymentResult', { error: error.message }, false);
+            }
+        }
+
+        // Get Profile
+        async function getProfile() {
+            if (!authToken) {
+                alert('Vui lòng đăng nhập trước!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/user/profile`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                showResult('userResult', data, response.ok);
+            } catch (error) {
+                showResult('userResult', { error: error.message }, false);
+            }
+        }
+
+        // Get User Packages
+        async function getUserPackages() {
+            if (!authToken) {
+                alert('Vui lòng đăng nhập trước!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/user/packages`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                showResult('userResult', data, response.ok);
+            } catch (error) {
+                showResult('userResult', { error: error.message }, false);
+            }
+        }
+
+        // Get Transactions
+        async function getTransactions() {
+            if (!authToken) {
+                alert('Vui lòng đăng nhập trước!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/user/transactions`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                showResult('userResult', data, response.ok);
+            } catch (error) {
+                showResult('userResult', { error: error.message }, false);
+            }
+        }
+
+        // Show Result
+        function showResult(elementId, data, success) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = success ? 'result success' : 'result error';
+            element.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        // Update Token Display
+        function updateTokenDisplay() {
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            if (authToken) {
+                tokenDisplay.style.display = 'block';
+                tokenDisplay.textContent = `Token: ${authToken.substring(0, 50)}...`;
+            }
+        }
+
+        // Load token on page load
+        if (authToken) {
+            updateTokenDisplay();
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
