@@ -69,7 +69,9 @@ async function saveToKV(fileBuffer: Buffer, filename: string, fileType: string):
     const fileId = `upload_${timestamp}_${randomStr}`;
     
     const base64 = fileBuffer.toString('base64');
-    const uploadKey = `${KV_PREFIXES.UPLOAD || 'upload:'}${fileId}`;
+    // Use type assertion to avoid TypeScript error (UPLOAD exists in KV_PREFIXES but may not be in type definition)
+    const uploadPrefix = (KV_PREFIXES as any).UPLOAD || 'upload:';
+    const uploadKey = `${uploadPrefix}${fileId}`;
     
     const uploadData = {
       id: fileId,
