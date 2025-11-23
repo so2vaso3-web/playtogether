@@ -37,6 +37,22 @@ body {
   /* Performance optimizations */
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
+  /* Disable zoom/pinch zoom */
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in input fields and text areas */
+input, textarea, select, [contenteditable] {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
 }
 
 /* GPU acceleration for smooth animations */
