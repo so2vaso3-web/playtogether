@@ -1121,6 +1121,13 @@ export default function AdminPackages() {
                             setUploadingIcon(true);
                             try {
                               const token = localStorage.getItem('token');
+                              if (!token) {
+                                toast.error('Vui lòng đăng nhập lại');
+                                router.push('/login');
+                                setUploadingIcon(false);
+                                return;
+                              }
+
                               const uploadFormData = new FormData();
                               uploadFormData.append('file', file);
                               uploadFormData.append('type', 'package-icon');
@@ -1132,11 +1139,17 @@ export default function AdminPackages() {
                                 },
                               });
 
-                              setFormData({ ...formData, icon: response.data.url });
-                              setIconPreview(response.data.url);
-                              toast.success('Upload thành công!');
+                              if (response.data && response.data.url) {
+                                setFormData({ ...formData, icon: response.data.url });
+                                setIconPreview(response.data.url);
+                                toast.success('Upload thành công!');
+                              } else {
+                                toast.error('Upload thất bại: Không nhận được URL');
+                              }
                             } catch (error: any) {
-                              toast.error(error.response?.data?.message || 'Upload thất bại');
+                              console.error('[Upload Error]', error);
+                              const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Upload thất bại';
+                              toast.error(`Lỗi upload: ${errorMessage}`);
                             } finally {
                               setUploadingIcon(false);
                             }

@@ -73,6 +73,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if running on Vercel (read-only filesystem)
+    const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+    
+    if (isVercel) {
+      // On Vercel, file uploads should use external storage (S3, Cloudinary, etc.)
+      // For now, return error with helpful message
+      return NextResponse.json(
+        { 
+          message: 'Upload file không khả dụng trên Vercel. Vui lòng sử dụng URL ảnh hoặc cấu hình external storage (S3, Cloudinary)', 
+          suggestion: 'Bạn có thể paste URL ảnh trực tiếp vào ô Logo/Icon thay vì upload file'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Local development: Save to file system
     // Create uploads directory if it doesn't exist
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
     if (!existsSync(uploadsDir)) {
@@ -101,8 +117,24 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Upload API] Error:', error);
+    console.error('[Upload API] Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = 'Lỗi upload file';
+    if (error.code === 'ENOENT') {
+      errorMessage = 'Không tìm thấy thư mục upload. Vui lòng tạo thư mục public/uploads';
+    } else if (error.code === 'EACCES') {
+      errorMessage = 'Không có quyền ghi file. Vui lòng kiểm tra quyền thư mục';
+    } else if (error.message) {
+      errorMessage = `Lỗi upload: ${error.message}`;
+    }
+    
     return NextResponse.json(
-      { message: 'Lỗi upload file', error: error.message },
+      { message: errorMessage, error: error.message },
       { status: 500 }
     );
   }
