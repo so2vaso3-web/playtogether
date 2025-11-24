@@ -31,6 +31,7 @@ export default function Deposit() {
   const [selectedBank, setSelectedBank] = useState<any>(null);
   const [requestCreated, setRequestCreated] = useState(false);
   const [createdAmount, setCreatedAmount] = useState(0);
+  const [transferContent, setTransferContent] = useState('');
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const { scrollDirection, isAtTop } = useScrollDirection();
 
@@ -284,6 +285,7 @@ export default function Deposit() {
 
       toast.success(`Yêu cầu nạp tiền ${depositAmount.toLocaleString('vi-VN')}₫ đã được tạo. Vui lòng chuyển khoản và chờ admin xác nhận.`);
       setCreatedAmount(depositAmount);
+      setTransferContent(transferContent); // Lưu nội dung chuyển khoản vào state
       setRequestCreated(true);
       setPaymentCompleted(false);
     } catch (error: any) {
@@ -314,6 +316,7 @@ export default function Deposit() {
     return `${randomCode}${amountSuffix}`.substring(0, 20);
   };
 
+  // Chỉ dùng getTransferContent cho preview (khi chưa tạo yêu cầu)
   const getTransferContent = () => {
     if (!amount || !user) return '';
     const amt = parseInt(amount);
@@ -321,7 +324,8 @@ export default function Deposit() {
     return generateTransferContent(amt);
   };
 
-  const transferContent = getTransferContent();
+  // Chỉ dùng cho preview, không dùng khi đã tạo yêu cầu
+  const previewTransferContent = !requestCreated ? getTransferContent() : '';
 
   return (
     <div className="min-h-screen bg-dark-primary relative">
@@ -545,6 +549,7 @@ export default function Deposit() {
                       setRequestCreated(false);
                       setAmount('');
                       setCreatedAmount(0);
+                      setTransferContent(''); // Reset nội dung chuyển khoản
                     }}
                     className="text-gray-400 hover:text-white transition text-xs sm:text-sm"
                   >
@@ -577,7 +582,7 @@ export default function Deposit() {
                                 const accountNumber = selectedBank.accountNumber ? String(selectedBank.accountNumber).trim().replace(/\s/g, '') : '';
                                 
                                 if (bankCode && accountNumber) {
-                                  const addInfo = generateTransferContent(createdAmount);
+                                  const addInfo = transferContent || generateTransferContent(createdAmount);
                                   const amountInt = Math.floor(createdAmount);
                                   const encodedAddInfo = encodeURIComponent(addInfo.trim());
                                   const vietQrUrl = `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact.jpg?amount=${amountInt}&addInfo=${encodedAddInfo}`;
@@ -626,7 +631,8 @@ export default function Deposit() {
                         // Sử dụng số tiền từ input hoặc createdAmount
                         const currentAmount = createdAmount || (amount ? parseInt(amount.replace(/\D/g, '')) : 0);
                         const amountValue = currentAmount >= 10000 ? currentAmount : 0;
-                        const addInfo = amountValue > 0 ? generateTransferContent(amountValue) : '';
+                        // Dùng transferContent từ state nếu đã tạo yêu cầu, nếu không thì generate mới (cho preview)
+                        const addInfo = amountValue > 0 ? (transferContent || generateTransferContent(amountValue)) : '';
                         
                         // Format URL theo đúng VietQR.io Quicklink API
                         // Format: https://img.vietqr.io/image/{bankCode}-{accountNumber}-compact.jpg?amount={amount}&addInfo={addInfo}
@@ -669,7 +675,7 @@ export default function Deposit() {
                           <div className="text-center">
                             <div className="bg-white p-3 sm:p-4 rounded-lg inline-block mb-2 sm:mb-3">
                               <img
-                                key={`qr-${bankCode}-${accountNumber}-${amountValue}-${Date.now()}`}
+                                key={`qr-${bankCode}-${accountNumber}-${amountValue}-${transferContent || addInfo}`}
                                 src={vietQrUrl}
                                 alt="VietQR"
                                 className="w-full max-w-[180px] sm:max-w-[220px] lg:max-w-[250px] h-auto"
@@ -718,11 +724,13 @@ export default function Deposit() {
                       const currentAmount = createdAmount || (amount ? parseInt(amount.replace(/\D/g, '')) : 0);
                       const amountValue = currentAmount >= 10000 ? currentAmount : 0;
                       if (amountValue > 0) {
+                        // Dùng transferContent từ state nếu đã tạo yêu cầu
+                        const displayContent = transferContent || generateTransferContent(amountValue);
                         return (
                           <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
                             <p className="text-primary text-xs font-semibold mb-1">📱 Quét mã QR bằng app ngân hàng</p>
                             <p className="text-success text-xs mb-1">✓ Số tiền: {amountValue.toLocaleString('vi-VN')}₫</p>
-                            <p className="text-success text-xs mb-1">✓ Nội dung: {generateTransferContent(amountValue)}</p>
+                            <p className="text-success text-xs mb-1">✓ Nội dung: {displayContent}</p>
                             <p className="text-gray-400 text-xs mt-2">Tự động điền - Bạn chỉ cần xác nhận!</p>
                           </div>
                         );
@@ -777,10 +785,10 @@ export default function Deposit() {
                       <div className="text-gray-400 text-xs mb-2">Nội dung chuyển khoản</div>
                       <div className="flex items-start sm:items-center gap-2 mb-2">
                         <div className="text-white font-bold text-sm break-all flex-1 min-w-0 overflow-hidden">
-                          <span className="block truncate sm:break-all">{generateTransferContent(createdAmount)}</span>
+                          <span className="block truncate sm:break-all">{transferContent || generateTransferContent(createdAmount)}</span>
                         </div>
                         <button
-                          onClick={() => copyToClipboard(generateTransferContent(createdAmount), 'nội dung chuyển khoản')}
+                          onClick={() => copyToClipboard(transferContent || generateTransferContent(createdAmount), 'nội dung chuyển khoản')}
                           className="p-2 hover:bg-primary/20 rounded transition flex-shrink-0 mt-0.5 sm:mt-0"
                         >
                           <Copy className="w-5 h-5 text-primary" />
