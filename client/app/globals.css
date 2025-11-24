@@ -69,14 +69,19 @@ body {
   /* Performance optimizations */
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
-  /* Disable zoom/pinch zoom */
-  touch-action: pan-x pan-y;
-  -ms-touch-action: pan-x pan-y;
+  /* Disable zoom/pinch zoom - Prevent all zoom gestures */
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  /* Prevent text size adjustment (zoom) */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Prevent double tap zoom on iOS - manipulation allows pan but disables pinch/double-tap zoom */
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
 }
 
 /* Allow text selection in input fields and text areas */
@@ -105,6 +110,13 @@ html {
   width: 100%;
   max-width: 100%;
   position: relative;
+  /* Disable zoom */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Prevent zoom gestures */
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
 }
 
 /* Gradient Text - Premium */
@@ -677,6 +689,28 @@ html {
   textarea,
   select {
     font-size: 16px; /* Prevents zoom on iOS */
+    /* Prevent zoom on focus */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Disable zoom gestures on all elements - manipulation prevents pinch/double-tap zoom */
+  * {
+    touch-action: manipulation;
+    -ms-touch-action: manipulation;
+  }
+
+  /* Allow text selection in inputs */
+  input,
+  textarea,
+  select,
+  [contenteditable] {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    touch-action: auto; /* Allow normal touch in inputs */
   }
 }
 
