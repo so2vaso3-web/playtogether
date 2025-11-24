@@ -27,11 +27,43 @@
   box-sizing: border-box;
 }
 
+/* Prevent horizontal scroll - Global fix */
+html,
+body {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  position: relative;
+}
+
+/* Ensure all containers don't overflow */
+#__next,
+main,
+.container,
+.max-w-7xl,
+.max-w-6xl,
+.max-w-5xl,
+.max-w-4xl {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Prevent any element from causing horizontal scroll */
+* {
+  max-width: 100%;
+}
+
+img,
+video,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Performance optimizations */
@@ -69,6 +101,10 @@ input, textarea, select, [contenteditable] {
 /* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  position: relative;
 }
 
 /* Gradient Text - Premium */
@@ -487,9 +523,25 @@ html {
 
 /* Responsive Design - Mobile First */
 @media (max-width: 640px) {
+  /* Prevent horizontal scroll on mobile */
+  html,
+  body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    position: relative;
+  }
+
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .gaming-card {
     padding: 16px;
     border-radius: 14px;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
   .btn-primary,
@@ -553,9 +605,23 @@ html {
 }
 
 @media (max-width: 768px) {
+  /* Prevent horizontal scroll on tablet */
+  html,
+  body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  * {
+    max-width: 100%;
+  }
+
   .gaming-card {
     padding: 20px;
     border-radius: 16px;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
   .btn-primary,
