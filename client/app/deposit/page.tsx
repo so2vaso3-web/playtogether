@@ -775,20 +775,20 @@ export default function Deposit() {
                     
                     <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
                       <div className="text-gray-400 text-xs mb-2">Nội dung chuyển khoản</div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="text-white font-bold text-sm break-all">
-                          {generateTransferContent(createdAmount)}
+                      <div className="flex items-start sm:items-center gap-2 mb-2">
+                        <div className="text-white font-bold text-sm break-all flex-1 min-w-0 overflow-hidden">
+                          <span className="block truncate sm:break-all">{generateTransferContent(createdAmount)}</span>
                         </div>
                         <button
                           onClick={() => copyToClipboard(generateTransferContent(createdAmount), 'nội dung chuyển khoản')}
-                          className="p-2 hover:bg-primary/20 rounded transition flex-shrink-0"
+                          className="p-2 hover:bg-primary/20 rounded transition flex-shrink-0 mt-0.5 sm:mt-0"
                         >
                           <Copy className="w-5 h-5 text-primary" />
                         </button>
                       </div>
                       <div className="text-warning text-xs flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Vui lòng ghi đúng nội dung để admin xác nhận nhanh nhất
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                        <span className="break-words">Vui lòng ghi đúng nội dung để admin xác nhận nhanh nhất</span>
                       </div>
                     </div>
                     
@@ -936,18 +936,20 @@ export default function Deposit() {
                   
                   <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
                     <div className="text-gray-400 text-xs mb-1">Nội dung chuyển khoản</div>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-white font-bold text-sm break-all">{transferContent}</div>
+                    <div className="flex items-start sm:items-center gap-2">
+                      <div className="text-white font-bold text-sm break-all flex-1 min-w-0 overflow-hidden">
+                        <span className="block truncate sm:break-all">{transferContent}</span>
+                      </div>
                       <button
                         onClick={() => copyToClipboard(transferContent, 'nội dung chuyển khoản')}
-                        className="p-1.5 hover:bg-primary/20 rounded transition flex-shrink-0"
+                        className="p-1.5 hover:bg-primary/20 rounded transition flex-shrink-0 mt-0.5 sm:mt-0"
                       >
                         <Copy className="w-4 h-4 text-primary" />
                       </button>
                     </div>
                     <div className="text-warning text-xs mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Ghi đúng nội dung để xác nhận nhanh
+                      <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                      <span className="break-words">Ghi đúng nội dung để xác nhận nhanh</span>
                     </div>
                   </div>
                 </div>
