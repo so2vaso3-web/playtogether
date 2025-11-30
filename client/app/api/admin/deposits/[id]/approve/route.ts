@@ -183,26 +183,30 @@ export async function POST(
       console.log('[Approve Deposit] New Balance:', verifiedBalance);
     }
 
-    // Update deposit status
-    await DepositRequest.update(params.id, {
-      status: 'approved',
-      approvedBy: decoded.userId,
-      approvedAt: new Date(),
-      adminNote: body.note || '',
-    });
-
-    // Get final user data for transaction record
+    // Get final user data for transaction record (before updating deposit status)
     const finalUser = await User.findById(user.id);
     const finalBalance = finalUser ? (Number(finalUser.balance) || 0) : expectedBalance;
     
-    // Create transaction record
-    await Transaction.create({
+    // Create transaction record FIRST (before updating deposit status)
+    // This ensures transaction exists when user queries profile
+    const transaction = await Transaction.create({
       userId: user.id,
       type: 'deposit',
       amount: depositAmount,
       description: `Nạp tiền - ${deposit.method || 'Chuyển khoản'}`,
       beforeBalance: currentBalance,
       afterBalance: finalBalance,
+    });
+    
+    // Wait a bit to ensure transaction is saved
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Update deposit status AFTER transaction is created
+    await DepositRequest.update(params.id, {
+      status: 'approved',
+      approvedBy: decoded.userId,
+      approvedAt: new Date(),
+      adminNote: body.note || '',
     });
 
     // Format response

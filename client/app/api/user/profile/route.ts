@@ -44,7 +44,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calculate balance from transactions to ensure accuracy
+    // Calculate balance from transactions for display only (don't auto-update)
+    // Balance should only be updated through proper APIs (deposit approve, purchase, etc.)
+    let calculatedBalanceForDisplay = Number(user.balance) || 0;
     try {
       const transactions = await Transaction.findByUserId(user.id);
       const depositTotal = transactions
@@ -53,31 +55,29 @@ export async function GET(request: NextRequest) {
       const purchaseTotal = transactions
         .filter(tx => tx.type === 'purchase')
         .reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
-      const calculatedBalance = depositTotal - purchaseTotal;
+      calculatedBalanceForDisplay = depositTotal - purchaseTotal;
       
       const storedBalance = Number(user.balance) || 0;
       
-      // If calculated balance doesn't match stored balance, update it
-      if (Math.abs(calculatedBalance - storedBalance) > 0.01) {
-        console.log('[Profile API] Balance mismatch detected!', {
+      // Only log mismatch, don't auto-update (to prevent race conditions)
+      if (Math.abs(calculatedBalanceForDisplay - storedBalance) > 0.01) {
+        console.warn('[Profile API] Balance mismatch detected (for info only, not updating):', {
           stored: storedBalance,
-          calculated: calculatedBalance,
+          calculated: calculatedBalanceForDisplay,
           depositTotal,
           purchaseTotal,
-          updating: true,
+          note: 'Balance will be synced by proper APIs (deposit approve, purchase, etc.)',
         });
-        await User.update(user.id, { balance: calculatedBalance });
-        // Reload user
-        user = await User.findById(decoded.userId);
-        if (!user) {
-          return NextResponse.json({ message: 'User không tồn tại' }, { status: 404 });
-        }
-        user.balance = calculatedBalance;
+        // Use stored balance as source of truth (it's updated by proper APIs)
+        // Don't auto-update to prevent race conditions
       }
     } catch (error) {
       console.error('[Profile API] Error calculating balance from transactions:', error);
       // Continue with stored balance if calculation fails
     }
+    
+    // Use stored balance as source of truth
+    user.balance = Number(user.balance) || 0;
 
     // Ensure user exists (after potential reload)
     if (!user) {
