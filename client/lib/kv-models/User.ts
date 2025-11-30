@@ -143,32 +143,103 @@ class UserKV {
 
     // Save to KV store
     const key = this.getKey(id);
-    await kvHelpers.set(key, updated);
     
-    // Wait for KV to sync
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Save multiple times to ensure it's persisted
+    for (let saveAttempt = 0; saveAttempt < 3; saveAttempt++) {
+      await kvHelpers.set(key, updated);
+      // Wait longer for KV to sync (especially for Redis)
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
     
-    // Reload and verify - retry up to 5 times
+    // Reload and verify - retry up to 10 times with longer waits
     let verified: IUser | null = null;
-    for (let i = 0; i < 5; i++) {
+    const maxRetries = 10;
+    for (let i = 0; i < maxRetries; i++) {
+      // Wait a bit before checking
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       verified = await this.findById(id);
       if (verified) {
         const verifiedBalance = Number(verified.balance) || 0;
-        if (Math.abs(verifiedBalance - updated.balance) <= 0.01) {
+        const expectedBalance = Number(updated.balance) || 0;
+        
+        if (Math.abs(verifiedBalance - expectedBalance) <= 0.01) {
+          console.log(`[User.update] Balance verified successfully on attempt ${i + 1}`);
           break; // Balance matches, we're good
         }
-        // Balance doesn't match, force update
-        verified.balance = updated.balance;
-        await kvHelpers.set(key, verified);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Balance doesn't match, force update again
+        console.warn(`[User.update] Balance mismatch on attempt ${i + 1}:`, {
+          expected: expectedBalance,
+          actual: verifiedBalance,
+          difference: Math.abs(verifiedBalance - expectedBalance),
+        });
+        
+        verified.balance = expectedBalance;
+        // Save the corrected balance
+        for (let saveAttempt = 0; saveAttempt < 2; saveAttempt++) {
+          await kvHelpers.set(key, verified);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       } else {
         // User not found, save again
-        await kvHelpers.set(key, updated);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.warn(`[User.update] User not found on attempt ${i + 1}, saving again...`);
+        for (let saveAttempt = 0; saveAttempt < 2; saveAttempt++) {
+          await kvHelpers.set(key, updated);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
     }
     
+    // Final verification
+    const finalUser = await this.findById(id);
+    if (finalUser) {
+      const finalBalance = Number(finalUser.balance) || 0;
+      const expectedBalance = Number(updated.balance) || 0;
+      
+      if (Math.abs(finalBalance - expectedBalance) > 0.01) {
+        console.error('[User.update] ===== FINAL BALANCE MISMATCH =====');
+        console.error('[User.update] Expected:', expectedBalance);
+        console.error('[User.update] Got:', finalBalance);
+        console.error('[User.update] User ID:', id);
+        
+        // Last attempt: force save with correct balance
+        finalUser.balance = expectedBalance;
+        await kvHelpers.set(key, finalUser);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Return the corrected user
+        const correctedUser = await this.findById(id);
+        return correctedUser || { ...finalUser, balance: expectedBalance } as IUser;
+      }
+      
+      return finalUser;
+    }
+    
     return verified || updated;
+  }
+
+  /**
+   * Add balance to user (safer than direct update)
+   * This method ensures balance is added correctly
+   */
+  async addBalance(id: string, amount: number): Promise<IUser | null> {
+    const user = await this.findById(id);
+    if (!user) return null;
+    
+    const currentBalance = Number(user.balance) || 0;
+    const addAmount = Number(amount) || 0;
+    const newBalance = Math.round((currentBalance + addAmount) * 100) / 100;
+    
+    console.log('[User.addBalance] Adding balance:', {
+      userId: id,
+      username: user.username,
+      currentBalance,
+      addAmount,
+      newBalance,
+    });
+    
+    return await this.update(id, { balance: newBalance });
   }
 
   async delete(id: string): Promise<boolean> {

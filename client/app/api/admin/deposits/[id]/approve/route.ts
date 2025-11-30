@@ -107,60 +107,74 @@ export async function POST(
     // Calculate new balance - ensure all values are numbers
     const currentBalance = Number(user.balance) || 0;
     const depositAmount = Number(deposit.amount) || 0;
-    const newBalance = Math.round((currentBalance + depositAmount) * 100) / 100;
+    const expectedBalance = Math.round((currentBalance + depositAmount) * 100) / 100;
     
     console.log('[Approve Deposit] Balance calculation:', {
       currentBalance,
       depositAmount,
-      newBalance,
-      formula: `${currentBalance} + ${depositAmount} = ${newBalance}`,
+      expectedBalance,
+      formula: `${currentBalance} + ${depositAmount} = ${expectedBalance}`,
     });
     
     console.log('[Approve Deposit] Updating balance for user:', user.username, 'ID:', user.id);
     
-    // Use User.update() method which has built-in verification and retry logic
-    console.log('[Approve Deposit] Using User.update() to update balance...');
-    const updateResult = await User.update(user.id, { balance: newBalance });
+    // Use User.addBalance() method which is safer and has built-in verification
+    console.log('[Approve Deposit] Using User.addBalance() to add balance...');
+    const updateResult = await User.addBalance(user.id, depositAmount);
     
-    // Wait for KV to sync
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // Verify balance was updated correctly - retry up to 5 times
-    let verifiedUser = await User.findById(user.id);
-    let verifiedBalance = verifiedUser ? (Number(verifiedUser.balance) || 0) : 0;
-    let retryCount = 0;
-    const maxRetries = 5;
-    
-    while (Math.abs(verifiedBalance - newBalance) > 0.01 && retryCount < maxRetries) {
-      console.warn(`[Approve Deposit] Balance mismatch (attempt ${retryCount + 1}/${maxRetries}):`, {
-        expected: newBalance,
-        actual: verifiedBalance,
-        difference: Math.abs(verifiedBalance - newBalance),
-      });
-      
-      // Force update again
-      await User.update(user.id, { balance: newBalance });
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      verifiedUser = await User.findById(user.id);
-      verifiedBalance = verifiedUser ? (Number(verifiedUser.balance) || 0) : 0;
-      retryCount++;
-    }
-    
-    if (Math.abs(verifiedBalance - newBalance) > 0.01) {
-      console.error('[Approve Deposit] ===== FAILED TO UPDATE BALANCE =====');
-      console.error('[Approve Deposit] Expected:', newBalance);
-      console.error('[Approve Deposit] Got:', verifiedBalance);
-      console.error('[Approve Deposit] User ID:', user.id);
-      console.error('[Approve Deposit] Username:', user.username);
+    if (!updateResult) {
+      console.error('[Approve Deposit] Failed to update user balance');
       return NextResponse.json({
         message: 'Không thể cập nhật số dư. Vui lòng thử lại.',
         error: 'Balance update failed',
-        expected: newBalance,
-        actual: verifiedBalance,
         userId: user.id,
         username: user.username,
       }, { status: 500 });
+    }
+    
+    // Wait a bit for KV to sync
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Verify balance was updated correctly
+    const verifiedUser = await User.findById(user.id);
+    if (!verifiedUser) {
+      console.error('[Approve Deposit] User not found after update');
+      return NextResponse.json({
+        message: 'Không tìm thấy user sau khi cập nhật',
+        error: 'User not found',
+        userId: user.id,
+      }, { status: 500 });
+    }
+    
+    const verifiedBalance = Number(verifiedUser.balance) || 0;
+    
+    if (Math.abs(verifiedBalance - expectedBalance) > 0.01) {
+      console.error('[Approve Deposit] ===== BALANCE MISMATCH AFTER UPDATE =====');
+      console.error('[Approve Deposit] Expected:', expectedBalance);
+      console.error('[Approve Deposit] Got:', verifiedBalance);
+      console.error('[Approve Deposit] User ID:', user.id);
+      console.error('[Approve Deposit] Username:', user.username);
+      
+      // Try one more time with direct update
+      await User.update(user.id, { balance: expectedBalance });
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const finalUser = await User.findById(user.id);
+      const finalBalance = finalUser ? (Number(finalUser.balance) || 0) : 0;
+      
+      if (Math.abs(finalBalance - expectedBalance) > 0.01) {
+        return NextResponse.json({
+          message: 'Không thể cập nhật số dư. Vui lòng thử lại.',
+          error: 'Balance update failed after retry',
+          expected: expectedBalance,
+          actual: finalBalance,
+          userId: user.id,
+          username: user.username,
+        }, { status: 500 });
+      }
+      
+      console.log('[Approve Deposit] ===== BALANCE FIXED AFTER RETRY =====');
+      console.log('[Approve Deposit] Final Balance:', finalBalance);
     } else {
       console.log('[Approve Deposit] ===== BALANCE UPDATED SUCCESSFULLY =====');
       console.log('[Approve Deposit] User:', user.username, 'ID:', user.id);
@@ -177,6 +191,10 @@ export async function POST(
       adminNote: body.note || '',
     });
 
+    // Get final user data for transaction record
+    const finalUser = await User.findById(user.id);
+    const finalBalance = finalUser ? (Number(finalUser.balance) || 0) : expectedBalance;
+    
     // Create transaction record
     await Transaction.create({
       userId: user.id,
@@ -184,12 +202,8 @@ export async function POST(
       amount: depositAmount,
       description: `Nạp tiền - ${deposit.method || 'Chuyển khoản'}`,
       beforeBalance: currentBalance,
-      afterBalance: newBalance,
+      afterBalance: finalBalance,
     });
-    
-    // Get final user data
-    const finalUser = await User.findById(user.id);
-    const finalBalance = finalUser ? (Number(finalUser.balance) || 0) : 0;
 
     // Format response
     const updatedDeposit = await DepositRequest.findById(params.id);
